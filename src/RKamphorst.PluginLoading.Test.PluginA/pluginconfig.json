@@ -1,0 +1,8 @@
+{
+  "stringOption": "string",
+  "intOption": 42,
+  "DictionaryOfOptions": {
+    "a": 1,
+    "b": 2
+  }
+}

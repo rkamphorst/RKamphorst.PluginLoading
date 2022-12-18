@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Title>Plugin Loading: AWS pligin library sources</Title>
+        <Authors>Reinder Kamphorst</Authors>
+        <Description>
+          Provides AWS implementations for plugin library sources on AWS, such 
+          as an S3 plugin library source implementation.
+        </Description>
+        <RepositoryUrl>https://github.com/rkamphorst/RKamphorst.PluginLoading</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Contract\RKamphorst.PluginLoading.Contract.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AWSSDK.S3" Version="3.7.101.35" />
+      <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PrivateAssets>all</PrivateAssets>
+      </PackageReference>
+    </ItemGroup>
+
+
+</Project>

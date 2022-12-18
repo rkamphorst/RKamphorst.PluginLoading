@@ -1,0 +1,42 @@
+name: Build and publish
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: '0'
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.x'
+    - name: Set NuGet Credentials
+      run: dotnet nuget update source github --username rkamphorst --password ${GITHUB_TOKEN} --store-password-in-clear-text --configfile ./nuget.config
+      working-directory: ./src
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Restore
+      working-directory: ./src
+      run: dotnet restore
+    - name: Build
+      working-directory: ./src
+      run: dotnet build --configuration Release --no-restore
+    - name: Test
+      working-directory: ./src
+      run: dotnet test --no-restore --verbosity normal
+    - name: Pack
+      working-directory: ./src
+      run: dotnet pack -c Release -p:PublicRelease=true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish
+      working-directory: ./src
+      shell: bash
+      run: for n in `find . -name "*.nupkg"`; do dotnet nuget push "$n" -k ${GITHUB_TOKEN} --source github --skip-duplicate; done  
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

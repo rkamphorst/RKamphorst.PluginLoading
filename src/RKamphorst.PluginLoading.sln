@@ -1,0 +1,94 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginConfiguration", "RKamphorst.PluginConfiguration\RKamphorst.PluginConfiguration.csproj", "{DC924642-86A0-40EE-8E8A-3232115235E1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginConfiguration.Contract", "RKamphorst.PluginConfiguration.Contract\RKamphorst.PluginConfiguration.Contract.csproj", "{D79916AF-DDB9-487E-929B-DD52F397DE1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginConfiguration.Test", "RKamphorst.PluginConfiguration.Test\RKamphorst.PluginConfiguration.Test.csproj", "{9DFFC9B1-0231-45CD-A919-667F48C0C201}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading", "RKamphorst.PluginLoading\RKamphorst.PluginLoading.csproj", "{81C584CF-4865-41F9-A6BD-D44040001BD2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Aws", "RKamphorst.PluginLoading.Aws\RKamphorst.PluginLoading.Aws.csproj", "{2D257F28-19A4-4130-919B-A89F76B31D88}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Aws.Test", "RKamphorst.PluginLoading.Aws.Test\RKamphorst.PluginLoading.Aws.Test.csproj", "{CFA98520-F57E-4ECC-8507-90A62B03E417}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Contract", "RKamphorst.PluginLoading.Contract\RKamphorst.PluginLoading.Contract.csproj", "{A7D6B1E5-EF0E-4F64-93CA-C080AEFB773D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.DependencyInjection", "RKamphorst.PluginLoading.DependencyInjection\RKamphorst.PluginLoading.DependencyInjection.csproj", "{4DBE1CE2-DC78-430F-86FF-829F04DA4657}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Test", "RKamphorst.PluginLoading.Test\RKamphorst.PluginLoading.Test.csproj", "{791E2DC4-15D0-4D7D-8778-527E20ADF695}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Test.ExternalDependency", "RKamphorst.PluginLoading.Test.ExternalDependency\RKamphorst.PluginLoading.Test.ExternalDependency.csproj", "{0936BC8E-EED0-4367-9490-CED2E55EF570}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Test.PluginA", "RKamphorst.PluginLoading.Test.PluginA\RKamphorst.PluginLoading.Test.PluginA.csproj", "{5E38E923-024B-4027-892A-036B7B3F8F1A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Test.PluginB", "RKamphorst.PluginLoading.Test.PluginB\RKamphorst.PluginLoading.Test.PluginB.csproj", "{629DB295-EFB7-4008-B5BB-C2AC3032C634}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RKamphorst.PluginLoading.Test.PluginContract", "RKamphorst.PluginLoading.Test.PluginContract\RKamphorst.PluginLoading.Test.PluginContract.csproj", "{D4C271C4-B1D1-4618-8104-6A5AE4BF9238}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC924642-86A0-40EE-8E8A-3232115235E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC924642-86A0-40EE-8E8A-3232115235E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC924642-86A0-40EE-8E8A-3232115235E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC924642-86A0-40EE-8E8A-3232115235E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D79916AF-DDB9-487E-929B-DD52F397DE1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D79916AF-DDB9-487E-929B-DD52F397DE1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D79916AF-DDB9-487E-929B-DD52F397DE1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D79916AF-DDB9-487E-929B-DD52F397DE1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DFFC9B1-0231-45CD-A919-667F48C0C201}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DFFC9B1-0231-45CD-A919-667F48C0C201}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DFFC9B1-0231-45CD-A919-667F48C0C201}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DFFC9B1-0231-45CD-A919-667F48C0C201}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81C584CF-4865-41F9-A6BD-D44040001BD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81C584CF-4865-41F9-A6BD-D44040001BD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81C584CF-4865-41F9-A6BD-D44040001BD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81C584CF-4865-41F9-A6BD-D44040001BD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D257F28-19A4-4130-919B-A89F76B31D88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D257F28-19A4-4130-919B-A89F76B31D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D257F28-19A4-4130-919B-A89F76B31D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D257F28-19A4-4130-919B-A89F76B31D88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFA98520-F57E-4ECC-8507-90A62B03E417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFA98520-F57E-4ECC-8507-90A62B03E417}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFA98520-F57E-4ECC-8507-90A62B03E417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFA98520-F57E-4ECC-8507-90A62B03E417}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7D6B1E5-EF0E-4F64-93CA-C080AEFB773D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7D6B1E5-EF0E-4F64-93CA-C080AEFB773D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7D6B1E5-EF0E-4F64-93CA-C080AEFB773D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7D6B1E5-EF0E-4F64-93CA-C080AEFB773D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4DBE1CE2-DC78-430F-86FF-829F04DA4657}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4DBE1CE2-DC78-430F-86FF-829F04DA4657}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4DBE1CE2-DC78-430F-86FF-829F04DA4657}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4DBE1CE2-DC78-430F-86FF-829F04DA4657}.Release|Any CPU.Build.0 = Release|Any CPU
+		{791E2DC4-15D0-4D7D-8778-527E20ADF695}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{791E2DC4-15D0-4D7D-8778-527E20ADF695}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{791E2DC4-15D0-4D7D-8778-527E20ADF695}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{791E2DC4-15D0-4D7D-8778-527E20ADF695}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0936BC8E-EED0-4367-9490-CED2E55EF570}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0936BC8E-EED0-4367-9490-CED2E55EF570}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0936BC8E-EED0-4367-9490-CED2E55EF570}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0936BC8E-EED0-4367-9490-CED2E55EF570}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E38E923-024B-4027-892A-036B7B3F8F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E38E923-024B-4027-892A-036B7B3F8F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E38E923-024B-4027-892A-036B7B3F8F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E38E923-024B-4027-892A-036B7B3F8F1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{629DB295-EFB7-4008-B5BB-C2AC3032C634}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{629DB295-EFB7-4008-B5BB-C2AC3032C634}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{629DB295-EFB7-4008-B5BB-C2AC3032C634}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{629DB295-EFB7-4008-B5BB-C2AC3032C634}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4C271C4-B1D1-4618-8104-6A5AE4BF9238}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4C271C4-B1D1-4618-8104-6A5AE4BF9238}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4C271C4-B1D1-4618-8104-6A5AE4BF9238}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4C271C4-B1D1-4618-8104-6A5AE4BF9238}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

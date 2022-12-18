@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Contract\RKamphorst.PluginLoading.Contract.csproj" />
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Test.ExternalDependency\RKamphorst.PluginLoading.Test.ExternalDependency.csproj" />
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Test.PluginContract\RKamphorst.PluginLoading.Test.PluginContract.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="pluginconfig.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>

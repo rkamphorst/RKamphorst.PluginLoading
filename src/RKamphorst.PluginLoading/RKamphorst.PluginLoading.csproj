@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Title>Plugin Loading</Title>
+        <Authors>Reinder Kamphorst</Authors>
+        <Description>
+          Provides a way to specify contracts for plugins to load and
+          sources where plugin libraries can be downloaded.
+
+          Supports plugin-scope configuration by with 
+          RKamphorst.PluginConfiguration.Contract.
+        </Description>
+        <RepositoryUrl>https://github.com/rkamphorst/RKamphorst.PluginLoading</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\RKamphorst.PluginConfiguration.Contract\RKamphorst.PluginConfiguration.Contract.csproj" />
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Contract\RKamphorst.PluginLoading.Contract.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="McMaster.NETCore.Plugins" Version="1.4.0" />
+      <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PrivateAssets>all</PrivateAssets>
+      </PackageReference>
+    </ItemGroup>
+
+</Project>
