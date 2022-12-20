@@ -4,7 +4,7 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Title>Plugin Loading: AWS pligin library sources</Title>
+        <Title>Plugin Loading: AWS plugin library sources</Title>
         <Authors>Reinder Kamphorst</Authors>
         <Description>
           Provides AWS implementations for plugin library sources on AWS, such 
@@ -19,12 +19,14 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="AWSSDK.ECS" Version="3.7.104.6" />
       <PackageReference Include="AWSSDK.S3" Version="3.7.101.35" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="7.0.0" />
       <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         <PrivateAssets>all</PrivateAssets>
       </PackageReference>
+      <PackageReference Include="System.Linq.Async" Version="6.0.1" />
     </ItemGroup>
 
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RKamphorst.PluginConfiguration;
@@ -11,10 +12,13 @@ public static class HostBuilderExtensions
 {
     private const string PluginBuilderKey = nameof(PluginBuilder);
 
-    public static async Task<IHostBuilder> ConfigurePluginsAsync(this IHostBuilder hostBuilder,
-        Action<IPluginRegistration, ILoggerFactory> registerPlugins, bool addSupportForConfigurationPerPlugin = true)
+    public static async Task<IHostBuilder> LoadPluginsAsync(this IHostBuilder hostBuilder, 
+        Action<IPluginRegistration, ILoggerFactory> registerPlugins,
+        ILoggingBuilder? logging = null,
+        bool addSupportForConfigurationPerPlugin = true
+        )
     {
-        using ILoggerFactory loggerFactory = CreateLoggerFactory(hostBuilder);
+        using ILoggerFactory loggerFactory = CreateLoggerFactory(logging);
 
         var builder = new PluginBuilder(loggerFactory);
         hostBuilder.Properties[PluginBuilderKey] = builder;
@@ -67,9 +71,17 @@ public static class HostBuilderExtensions
         });
     }
 
-    private static ILoggerFactory CreateLoggerFactory(IHostBuilder hostBuilder)
+    private static ILoggerFactory CreateLoggerFactory(ILoggingBuilder? loggingBuilder)
     {
         var serviceCollection = new ServiceCollection();
+        if (loggingBuilder != null)
+        {
+            foreach (var svc in loggingBuilder.Services)
+            {
+                serviceCollection.Add(svc);
+            }
+        }
+
         serviceCollection.AddLogging();
         ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
         ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();

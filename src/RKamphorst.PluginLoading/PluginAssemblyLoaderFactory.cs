@@ -60,7 +60,7 @@ public class PluginAssemblyLoaderFactory : IPluginAssemblyLoaderFactory
                 var libraryAssemblyFile =
                     await _store.GetPathToLibraryAssemblyAsync(_forLibrary.Reference, cancellationToken);
                 
-                _logger.LogInformation(
+                _logger.LogDebug(
                     "Loading library {LibraryReference} from {LibraryAssemblyFile} " +
                     "(services {@ServiceTypes}, shared {@SharedTypes})",
                     _forLibrary.Reference, libraryAssemblyFile, 

@@ -1,50 +1,98 @@
-using Amazon.S3;
+using System.Text;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Xunit;
 
 namespace RKamphorst.PluginLoading.Aws.Test.S3LibrarySource;
 
-using S3LibrarySource = RKamphorst.PluginLoading.Aws.S3LibrarySource;
-
 public class FetchConfigAsyncShould
 {
-    [Fact]
-    public async Task FetchStreamFromCorrectKey()
+    private readonly IS3TestBackend _backend;
+
+    public FetchConfigAsyncShould()
     {
-        var s3ClientMock = new Mock<IAmazonS3>();
+        _backend = S3TestBackendExtensions.CreateBackend();
+    }
 
-        var stream = new MemoryStream();
-        s3ClientMock
-            .Setup(m => m.GetObjectStreamAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<IDictionary<string, object>>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Stream)stream);
-                
-        
-        var sut = new S3LibrarySource(new S3LibrarySourceOptions
-        {
-            Bucket = "bucket",
-            Prefix = "prefix"
-        }, Mock.Of<ILogger<S3LibrarySource>>(),s3ClientMock.Object);
+    [Fact]
+    public async Task FetchConfigStreamFromCorrectKey()
+    {
+        string prefix = $"{GetType().Name}_{nameof(FetchConfigStreamFromCorrectKey)}/";
+        var versions = _backend.GenerateVersions(
+                1, 1,
+                keys: _ => $"{prefix}name-dotnet.zip",
+                lastModifiedOffset: _ => TimeSpan.Zero
+            )
+            .Concat(_backend.GenerateVersions(
+                1, 1,
+                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1),
+                content: _ => "config"
+            )).ToList();
 
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
 
-        var result = await sut.FetchConfigAsync("name", CancellationToken.None);
+        var sut = _backend.CreateSystemUnderTest(prefix);
 
-        result.Should().BeSameAs(stream);
-        s3ClientMock.Verify(m => m.GetObjectStreamAsync(
-            "bucket",
-            "prefix/name-dotnet-pluginconfig.json",
-            It.IsAny<IDictionary<string, object>>(),
-            It.IsAny<CancellationToken>()), Times.Once);
-        s3ClientMock
-            .Verify(m => m.GetObjectStreamAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<IDictionary<string, object>>(),
-                It.IsAny<CancellationToken>()), Times.Once);
+        await using Stream s = await sut.FetchConfigAsync("name", CancellationToken.None);
+        using var sr = new StreamReader(s, Encoding.UTF8);
+
+        var result = await sr.ReadToEndAsync();
+
+        result.Should().Be("config");
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task FetchConfigStreamFromLatestVersion()
+    {
+        string prefix = $"{GetType().Name}_{nameof(FetchConfigStreamFromLatestVersion)}/";
+        var versions = _backend.GenerateVersions(
+                1, 1,
+                keys: _ => $"{prefix}name-dotnet.zip",
+                lastModifiedOffset: n => TimeSpan.FromMilliseconds(n)
+            )
+            .Concat(_backend.GenerateVersions(
+                1, 5,
+                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                lastModifiedOffset: n => TimeSpan.FromMilliseconds(n),
+                content: n => n == 5 ? "latestVersion" : null
+            )).ToList();
+
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
+
+        await using Stream s = await sut.FetchConfigAsync("name", CancellationToken.None);
+        using var sr = new StreamReader(s, Encoding.UTF8);
+
+        var result = await sr.ReadToEndAsync();
+
+        result.Should().Be("latestVersion");
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task ThrowExceptionIfDeleted()
+    {
+        string prefix = $"{GetType().Name}_{nameof(ThrowExceptionIfDeleted)}/";
+        var versions = _backend.GenerateVersions(
+                0, 1,
+                keys: _ => $"{prefix}name-dotnet.zip",
+                lastModifiedOffset: _ => TimeSpan.Zero
+            )
+            .Concat(_backend.GenerateVersions(
+                0, 2,
+                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                lastModifiedOffset: n => TimeSpan.FromMilliseconds(n),
+                isDeleted: n => n == 1
+            )).ToList();
+
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
+
+        var act = () => sut.FetchConfigAsync("name", CancellationToken.None);
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _backend.VerifyAll();
     }
 }

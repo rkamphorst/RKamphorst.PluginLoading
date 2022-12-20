@@ -8,5 +8,5 @@ public interface IPluginLibrarySource
 
     Task<Stream> FetchCodeZipAsync(string name, CancellationToken cancellationToken);
 
-    Task<Stream?> FetchConfigAsync(string name, CancellationToken cancellationToken);
+    Task<Stream> FetchConfigAsync(string name, CancellationToken cancellationToken);
 }

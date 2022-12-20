@@ -1,45 +1,63 @@
 ﻿using System.IO.Compression;
 using System.Text;
-using Moq;
 using RKamphorst.PluginLoading.Contract;
 
-namespace RKamphorst.PluginLoading.Test.Stubs;
+namespace Sample.Api;
 
-public class StubPluginLibrarySource: IPluginLibrarySource
+public class PluginLibrarySource: IPluginLibrarySource
 {
-    public static Mock<StubPluginLibrarySource> CreateMock(string name) =>
-        new(MockBehavior.Loose, name)
-        {
-            CallBase = true
-        };
+    private readonly ILogger<PluginLibrarySource> _logger;
 
-    private readonly List<string> _localLibraries;
-
-    public StubPluginLibrarySource(string name)
+    static string GetPathToAssemblyFolder(string name)
     {
-        _localLibraries = new List<string>();
+        var thisType = typeof(PluginLibrarySource);
+        string assemblyName = thisType.Assembly.GetName().Name!;
+        string assemblyPath = Path.GetDirectoryName(thisType.Assembly.Location)!;
+
+        var segments = new List<string>();
+        do
+        {
+            segments.Add(Path.GetFileName(assemblyPath));
+            assemblyPath = Path.GetDirectoryName(assemblyPath)!;
+        } while (segments[^1] != assemblyName);
+
+        segments.Reverse();
+        segments.RemoveAt(0);
+
+        assemblyPath = Path.Combine(
+            new[] { assemblyPath }
+                .Concat(new[] { name })
+                .Concat(segments)
+                .ToArray()
+        );
+        return assemblyPath;
+    }
+    
+    public PluginLibrarySource(string name, ILogger<PluginLibrarySource> logger)
+    {
+        _logger = logger;
         Name = name;
     }
 
-    public void AddLocalLibrary(string name)
-    {
-        _localLibraries.Add(name);
-    }
-
     public string Name { get; }
-    
+
     public virtual Task<IEnumerable<PluginLibraryReference>> GetListAsync(CancellationToken cancellationToken)
     {
-        return Task.FromResult(_localLibraries.Select(l => new PluginLibraryReference
+        _logger.LogInformation("Getting list of libraries");
+        return Task.FromResult((IEnumerable<PluginLibraryReference>)new[]
         {
-            Name = l,
-            Source = this
-        }));
+            new PluginLibraryReference()
+            {
+                Name = "Sample.Plugin.A",
+                Source = this
+            }
+        });
     }
 
     public virtual Task<Stream> FetchCodeZipAsync(string name, CancellationToken cancellationToken)
     {
-        var assemblyPath = StubPluginLibraries.GetPathToAssemblyFolder(name);
+        _logger.LogInformation("Fetching code for {LibraryName}", name);
+        var assemblyPath = GetPathToAssemblyFolder(name);
 
         var stream = new MemoryStream();
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))

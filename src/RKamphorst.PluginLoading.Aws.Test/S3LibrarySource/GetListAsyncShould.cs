@@ -1,116 +1,195 @@
-﻿using System.Net;
-using Amazon.S3;
-using Amazon.S3.Model;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
+﻿using FluentAssertions;
 using Xunit;
 
 namespace RKamphorst.PluginLoading.Aws.Test.S3LibrarySource;
 
-using S3LibrarySource = RKamphorst.PluginLoading.Aws.S3LibrarySource;
-
 public class GetListAsyncShould
 {
+    private readonly IS3TestBackend _backend;
 
+    public GetListAsyncShould()
+    {
+        _backend = S3TestBackendExtensions.CreateBackend();
+    }
+
+    
     [Fact]
     public async Task ImplementContinuation()
     {
-        var s3ClientMock = new Mock<IAmazonS3>();
-        s3ClientMock
-            .Setup(m => m.ListObjectsV2Async(
-                It.Is<ListObjectsV2Request>(r => r.ContinuationToken == null),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new ListObjectsV2Response
-                {
-                    S3Objects = new List<S3Object>
-                    {
-                        new S3Object { Key = "prefix/a-dotnet.zip" },
-                        new S3Object { Key = "prefix/b-dotnet.zip" },
-                    },
-                    NextContinuationToken = "1"
-                }
-            );
-        s3ClientMock
-            .Setup(m => m.ListObjectsV2Async(
-                It.Is<ListObjectsV2Request>(r => r.ContinuationToken == "1"),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new ListObjectsV2Response
-                {
-                    S3Objects = new List<S3Object>
-                    {
-                        new S3Object { Key = "prefix/c-dotnet.zip" },
-                        new S3Object { Key = "prefix/d-dotnet.zip" },
-                        new S3Object { Key = "prefix/e-dotnet.zip" }
-                    },
-                    NextContinuationToken = "2"
-                }
-            );
-        s3ClientMock
-            .Setup(m => m.ListObjectsV2Async(
-                It.Is<ListObjectsV2Request>(r => r.ContinuationToken == "2"),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new ListObjectsV2Response
-                {
-                    S3Objects = new List<S3Object>
-                    {
-                        new S3Object { Key = "prefix/f-dotnet.zip" },
-                        new S3Object { Key = "prefixxx/g-dotnet.zip" }
-                    },
-                    NextContinuationToken = null
-                }
-            );
+        string prefix = $"{GetType().Name}_{nameof(ImplementContinuation)}/";
+        var versions = 
+            _backend.GenerateVersions(0, 1000, 
+                    keys: n => $"{prefix}lib{n}-dotnet.zip",
+                    lastModifiedOffset: _ => TimeSpan.Zero
+                    )
+            .Concat(
+                _backend.GenerateVersions(0, 1000, 
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1))
+            )
+            .Shuffle().ToList();
 
-        var sut = new S3LibrarySource(new S3LibrarySourceOptions
-        {
-            Bucket = "bucket",
-            Prefix = "prefix"
-        }, Mock.Of<ILogger<S3LibrarySource>>(), s3ClientMock.Object);
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
 
         var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
         result.Should().NotBeNull();
-        result.Select(l => l.Name).Should().BeEquivalentTo(new[] { "a", "b", "c", "d", "e", "f" });
-    }
-
-    [Theory]
-    [MemberData(nameof(GetCorrectListTestCases))]
-    public async Task ReturnCorrectList(string prefix, string[] objectKeys, string[] expectNames)
-    {
-        var s3ClientMock = new Mock<IAmazonS3>();
-        s3ClientMock
-            .Setup(m => m.ListObjectsV2Async(It.IsAny<ListObjectsV2Request>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new ListObjectsV2Response { S3Objects = objectKeys.Select(k => new S3Object { Key = k }).ToList() }
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(0, 1000).Select(n => $"lib{n}").ToList()
             );
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task OnlyListLibrariesThatHaveConfigAndCode()
+    {
+        string prefix = $"{GetType().Name}_{nameof(OnlyListLibrariesThatHaveConfigAndCode)}/";
+        var versions = 
+            _backend.GenerateVersions(0, 10, 
+                    keys: n => $"{prefix}lib{n}-dotnet.zip",
+                    lastModifiedOffset: _ => TimeSpan.Zero)
+            .Concat(
+                _backend.GenerateVersions(5, 10, 
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1))
+            )
+            .Shuffle().ToList();
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
 
-        var sut = new S3LibrarySource(new S3LibrarySourceOptions
-        {
-            Bucket = "bucket",
-            Prefix = prefix
-        }, Mock.Of<ILogger<S3LibrarySource>>(), s3ClientMock.Object);
+        var sut = _backend.CreateSystemUnderTest(prefix);
 
         var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
         result.Should().NotBeNull();
-        result.Select(l => l.Name).Should().BeEquivalentTo(expectNames);
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(5, 5).Select(n => $"lib{n}").ToList()
+        );
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task OnlyListLibrariesThatHaveConfigYoungerThanCode()
+    {
+        string prefix = $"{GetType().Name}_{nameof(OnlyListLibrariesThatHaveConfigYoungerThanCode)}/";
+        var versions = _backend.GenerateVersions(0, 10,
+                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                lastModifiedOffset: n => TimeSpan.FromMilliseconds((n + 6) * 200)
+            )
+            .Concat(
+                _backend.GenerateVersions(0, 10,
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: n => TimeSpan.FromMilliseconds(n * 2 * 200)
+                )
+            )
+            .Shuffle().ToList();
+        
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
+
+        var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
+        result.Should().NotBeNull();
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(6, 4).Select(n => $"lib{n}").ToList()
+        );
+        _backend.VerifyAll();
     }
 
-    public static IEnumerable<object[]> GetCorrectListTestCases()
+    [Fact]
+    public async Task OnlyListLibrariesBeforeVersionAtDate()
     {
-        yield return new object[]
-            { "prefix", new[] { "prefix/a-dotnet.zip", "prefix/b-dotnet.zip" }, new[] { "a", "b" } };
-        yield return new object[]
-            { "prefix", new[] { "prefix/a-dotnet.zip", "prefix/b-dotnet.zip","prefix/c-dotnet-pluginconfig.json" }, new[] { "a", "b" } };
-        yield return new object[]
-            { "prefix", new[] { "prefix/a-dotnet.zip", "prefix/b-python.zip" }, new[] { "a"  } };
-        yield return new object[]
-            { "prefix", new[] { "prefix/a-dotnet.zip", "prefix/pfx/b-dotnet.zip" }, new[] { "a" } };
-        yield return new object[]
-            { "prefix", new[] { "prefix2/a-dotnet.zip", "prefix/b-dotnet.zip" }, new[] { "b" } };
-        yield return new object[]
-            { "prefix", Array.Empty<string>(), Array.Empty<string>() };
+        string prefix = $"{GetType().Name}_{nameof(OnlyListLibrariesBeforeVersionAtDate)}/";
+        var versions = _backend.GenerateVersions(0, 10,
+                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                lastModifiedOffset: n => TimeSpan.FromMilliseconds(n-5)
+            )
+            .Concat(
+                _backend.GenerateVersions(0, 10,
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: n => TimeSpan.FromMilliseconds(n-4)
+                )
+            )
+            .Shuffle().ToList();
+        
+        var referenceDateTime = await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
 
+        var sut = _backend.CreateSystemUnderTest(prefix, referenceDateTime);
+
+        var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
+        result.Should().NotBeNull();
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(0, 5).Select(n => $"lib{n}").ToList()
+        );
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task OnlyListLibrariesWithCodeThatIsNotDeleted()
+    {
+        string prefix = $"{GetType().Name}_{nameof(OnlyListLibrariesWithCodeThatIsNotDeleted)}/";
+        var versions = _backend.GenerateVersions(0, 2,
+                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                lastModifiedOffset: n => TimeSpan.Zero
+            )
+            .Concat(
+                _backend.GenerateVersions(0, 2,
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1)
+                )
+            )
+            .Concat(
+                _backend.GenerateVersions(1, 1,
+                    keys: n => $"{prefix}lib{n}-dotnet.zip",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(2),
+                    isDeleted: _ => true
+                )
+            )
+            .Shuffle().ToList();
+        
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
+
+        var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
+        result.Should().NotBeNull();
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(0, 1).Select(n => $"lib{n}").ToList()
+        );
+        _backend.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task OnlyListLibrariesWithConfigThatIsNotDeleted()
+    {
+        string prefix = $"{GetType().Name}_{nameof(OnlyListLibrariesWithConfigThatIsNotDeleted)}/";
+        var versions = _backend.GenerateVersions(0, 2,
+                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                lastModifiedOffset: n => TimeSpan.Zero
+            )
+            .Concat(
+                _backend.GenerateVersions(0, 2,
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1)
+                )
+            )
+            .Concat(
+                _backend.GenerateVersions(1, 1,
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    lastModifiedOffset: _ => TimeSpan.FromMilliseconds(2),
+                    isDeleted: _ => true
+                )
+            )
+            .Shuffle().ToList();
+        
+        await _backend.Setup(prefix, _backend.ReferenceDateTime(), versions);
+
+        var sut = _backend.CreateSystemUnderTest(prefix);
+
+        var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
+        result.Should().NotBeNull();
+        result.Select(l => l.Name).Should().BeEquivalentTo(
+            Enumerable.Range(0, 1).Select(n => $"lib{n}").ToList()
+        );
+        _backend.VerifyAll();
     }
 }

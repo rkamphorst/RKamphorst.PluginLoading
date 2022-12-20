@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Title>Plugin Loading: use AWS plugin library sources with Microsoft Dependency Injection</Title>
+        <Authors>Reinder Kamphorst</Authors>
+        <Description>
+            Provides extension methods to IServiceCollection to facilitate using the RKamphorst.PluginLoading.Aws
+            package with Microsoft Dependency Injection
+        </Description>
+        <RepositoryUrl>https://github.com/rkamphorst/RKamphorst.PluginLoading</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>        
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.2" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="7.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Options" Version="7.0.0" />
+        <PackageReference Include="Nerdbank.GitVersioning" Version="3.3.37">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\RKamphorst.PluginLoading.Aws\RKamphorst.PluginLoading.Aws.csproj" />
+    </ItemGroup>
+
+</Project>

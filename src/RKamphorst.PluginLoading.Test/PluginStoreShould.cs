@@ -88,4 +88,20 @@ public class PluginStoreShould
         assembly.Should().NotBeNull();
         assembly.GetName().Name.Should().Be(StubPluginLibraries.PluginA);
     }
+
+    [Fact]
+    public async Task BeAbleToHandleWeirdLibrarySourceName()
+    {
+        var pluginLibrarySourceMock = StubPluginLibrarySource.CreateMock("/a\\b:\"c");
+        var libraryReference = new PluginLibraryReference
+        {
+            Name = StubPluginLibraries.PluginA,
+            Source = pluginLibrarySourceMock.Object
+        };
+
+        var result = await _sut.GetPathToLibraryAssemblyAsync(libraryReference, CancellationToken.None);
+
+        result.Should().NotBeEmpty();
+        File.Exists(result).Should().BeTrue();
+    }
 }

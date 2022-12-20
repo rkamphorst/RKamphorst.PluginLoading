@@ -13,8 +13,9 @@ public class PluginStore : IPluginStore
     {
         _logger = logger;
     }
-    
-    public async Task<string> GetPathToLibraryAssemblyAsync(PluginLibraryReference lib, CancellationToken cancellationToken)
+
+    public async Task<string> GetPathToLibraryAssemblyAsync(PluginLibraryReference lib,
+        CancellationToken cancellationToken)
     {
         if (_pluginStoreDirectory == null)
         {
@@ -23,13 +24,22 @@ public class PluginStore : IPluginStore
             Directory.CreateDirectory(_pluginStoreDirectory);
         }
 
-        var pluginDirectory = Path.Combine(_pluginStoreDirectory, lib.Source.Name, lib.Name);
+        string SanitizeFilename(string f)
+        {
+            return string.Join("_", f.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        }
+
+        var pluginDirectory = Path.Combine(
+            _pluginStoreDirectory,
+            SanitizeFilename(lib.Source.Name),
+            SanitizeFilename(lib.Name)
+        );
         if (!Directory.Exists(pluginDirectory))
         {
-            _logger.LogInformation(
-                "Creating directory {PluginLibraryDirectory} for library {PluginLibrary} and storing code + config",
-                pluginDirectory, lib);
-            
+            _logger.LogDebug(
+                "Creating directory {PluginLibraryDirectory} for library {PluginLibraryName}",
+                pluginDirectory, lib.Name);
+
             Directory.CreateDirectory(pluginDirectory);
             try
             {
@@ -45,8 +55,9 @@ public class PluginStore : IPluginStore
         else
         {
             _logger.LogDebug(
-                "Directory {PluginLibraryDirectory} for library {PluginLibrary} already exists, not downloading",
-                pluginDirectory, lib);
+                "Directory {PluginLibraryDirectory} for library {PluginLibraryName} already exists, " +
+                "assuming code and config are already stored",
+                pluginDirectory, lib.Name);
         }
 
         var assemblyPath = Path.Combine(pluginDirectory, $"{lib.Name}.dll");
@@ -71,10 +82,10 @@ public class PluginStore : IPluginStore
     {
         await using Stream stream = await lib.FetchCodeZipAsync(cancellationToken);
 
-        _logger.LogInformation(
-            "Downloading and unzipping code for library {PluginLibrary} into directory {PluginLibraryDirectory}",
-            lib, toDirectory);
-        
+        _logger.LogDebug(
+            "Unzipping code for {PluginLibraryName} into directory {PluginLibraryDirectory}",
+            lib.Name, toDirectory);
+
         using var zipArchive = new ZipArchive(stream, ZipArchiveMode.Read);
 
         zipArchive.ExtractToDirectory(toDirectory);
@@ -87,8 +98,8 @@ public class PluginStore : IPluginStore
         if (File.Exists(destPath))
         {
             _logger.LogWarning(
-                "Configuration file {PluginConfigFile} for library {PluginLibrary} already exists, deleting",
-                destPath, lib);
+                "Configuration file {PluginConfigFile} for library {PluginLibraryName} already exists, overwriting",
+                destPath, lib.Name);
             File.Delete(destPath);
         }
 
@@ -98,9 +109,9 @@ public class PluginStore : IPluginStore
 
             if (stream != null)
             {
-                _logger.LogInformation(
-                    "Downloading config for library {PluginLibrary} to {PluginConfigFile}",
-                    lib, destPath);
+                _logger.LogDebug(
+                    "Storing config for library {PluginLibraryName} to {PluginConfigFile}",
+                    lib.Name, destPath);
 
                 await using (stream)
                 {
@@ -111,8 +122,8 @@ public class PluginStore : IPluginStore
             else
             {
                 _logger.LogWarning(
-                    "No configuration found for library {PluginLibrary}",
-                    lib);
+                    "No configuration found for library {PluginLibraryName}",
+                    lib.Name);
             }
         }
         catch (Exception ex)
@@ -124,6 +135,7 @@ public class PluginStore : IPluginStore
                     destPath);
                 File.Delete(destPath);
             }
+
             throw;
         }
     }

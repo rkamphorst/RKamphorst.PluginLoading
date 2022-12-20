@@ -1,5 +1,11 @@
 {
     "$schema": "https://raw.githubusercontent.com/dotnet/Nerdbank.GitVersioning/master/src/NerdBank.GitVersioning/version.schema.json",
-    "version": "0.1",
-    "pathFilters": [ "." ]
+    "version": "0.3",
+    "pathFilters": [ 
+        ".", 
+        "../RKamphorst.PluginConfiguration.Contract",
+        "../RKamphorst.PluginConfiguration",
+        "../RKamphorst.PluginLoading",
+        "../RKamphorst.PluginLoading.Contract"  
+    ]
 }

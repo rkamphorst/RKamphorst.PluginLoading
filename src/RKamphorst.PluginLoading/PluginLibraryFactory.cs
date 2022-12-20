@@ -64,8 +64,8 @@ internal class PluginLibraryFactory
             var libRefs = (await LibrarySource.GetListAsync(cancellationToken)).ToArray();
 
             _logger.LogInformation(
-                "Got library list {@PluginLibraries} from source {PluginLibrarySource}",
-                libRefs.Select(r => r.Name), LibrarySource.Name
+                "Library source {PluginLibrarySource} has {PluginLibrariesCount} libraries: {@PluginLibraries}",
+                LibrarySource.Name, libRefs.Length, libRefs.Select(r => r.Name) 
             );
             
             return libRefs
