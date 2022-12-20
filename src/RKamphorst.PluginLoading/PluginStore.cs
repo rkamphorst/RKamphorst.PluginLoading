@@ -1,23 +1,35 @@
 ﻿using System.IO.Compression;
+using Microsoft.Extensions.Logging;
 using RKamphorst.PluginLoading.Contract;
 
 namespace RKamphorst.PluginLoading;
 
 public class PluginStore : IPluginStore
 {
-    private string? _tempDirectory;
+    private readonly ILogger<PluginStore> _logger;
+    private string? _pluginStoreDirectory;
+
+    public PluginStore(ILogger<PluginStore> logger)
+    {
+        _logger = logger;
+    }
     
     public async Task<string> GetPathToLibraryAssemblyAsync(PluginLibraryReference lib, CancellationToken cancellationToken)
     {
-        if (_tempDirectory == null)
+        if (_pluginStoreDirectory == null)
         {
-            _tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(_tempDirectory);
+            _pluginStoreDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            _logger.LogInformation("Creating plugin store directory {PluginStoreDirectory}", _pluginStoreDirectory);
+            Directory.CreateDirectory(_pluginStoreDirectory);
         }
 
-        var pluginDirectory = Path.Combine(_tempDirectory, lib.Source.Name, lib.Name);
+        var pluginDirectory = Path.Combine(_pluginStoreDirectory, lib.Source.Name, lib.Name);
         if (!Directory.Exists(pluginDirectory))
         {
+            _logger.LogInformation(
+                "Creating directory {PluginLibraryDirectory} for library {PluginLibrary} and storing code + config",
+                pluginDirectory, lib);
+            
             Directory.CreateDirectory(pluginDirectory);
             try
             {
@@ -29,6 +41,12 @@ public class PluginStore : IPluginStore
                 Directory.Delete(pluginDirectory, recursive: true);
                 throw;
             }
+        }
+        else
+        {
+            _logger.LogDebug(
+                "Directory {PluginLibraryDirectory} for library {PluginLibrary} already exists, not downloading",
+                pluginDirectory, lib);
         }
 
         var assemblyPath = Path.Combine(pluginDirectory, $"{lib.Name}.dll");
@@ -52,6 +70,11 @@ public class PluginStore : IPluginStore
         CancellationToken cancellationToken)
     {
         await using Stream stream = await lib.FetchCodeZipAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Downloading and unzipping code for library {PluginLibrary} into directory {PluginLibraryDirectory}",
+            lib, toDirectory);
+        
         using var zipArchive = new ZipArchive(stream, ZipArchiveMode.Read);
 
         zipArchive.ExtractToDirectory(toDirectory);
@@ -60,28 +83,45 @@ public class PluginStore : IPluginStore
     private async Task StorePluginLibraryConfigAsync(PluginLibraryReference lib, string toDirectory,
         CancellationToken cancellationToken)
     {
-        var destPath = Path.Combine(toDirectory, RKamphorst.PluginConfiguration.Contract.Convention.ConfigurationFileName);
+        var destPath = Path.Combine(toDirectory, PluginConfiguration.Contract.Convention.ConfigurationFileName);
         if (File.Exists(destPath))
         {
+            _logger.LogWarning(
+                "Configuration file {PluginConfigFile} for library {PluginLibrary} already exists, deleting",
+                destPath, lib);
             File.Delete(destPath);
         }
 
         try
         {
             Stream? stream = await lib.FetchConfigAsync(cancellationToken);
+
             if (stream != null)
             {
+                _logger.LogInformation(
+                    "Downloading config for library {PluginLibrary} to {PluginConfigFile}",
+                    lib, destPath);
+
                 await using (stream)
                 {
                     await using FileStream dest = File.OpenWrite(destPath);
                     await stream.CopyToAsync(dest, cancellationToken);
                 }
             }
+            else
+            {
+                _logger.LogWarning(
+                    "No configuration found for library {PluginLibrary}",
+                    lib);
+            }
         }
-        catch
+        catch (Exception ex)
         {
             if (File.Exists(destPath))
             {
+                _logger.LogWarning(ex,
+                    "Exception occurred, deleting configuration file {PluginConfigFile}",
+                    destPath);
                 File.Delete(destPath);
             }
             throw;

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RKamphorst.PluginConfiguration;
 using RKamphorst.PluginConfiguration.Contract;
 using RKamphorst.PluginLoading.Contract;
@@ -11,12 +12,14 @@ public static class HostBuilderExtensions
     private const string PluginBuilderKey = nameof(PluginBuilder);
 
     public static async Task<IHostBuilder> ConfigurePluginsAsync(this IHostBuilder hostBuilder,
-        Action<IPluginRegistration> registerPlugins, bool addSupportForConfigurationPerPlugin = true)
+        Action<IPluginRegistration, ILoggerFactory> registerPlugins, bool addSupportForConfigurationPerPlugin = true)
     {
-        var builder = new PluginBuilder();
+        using ILoggerFactory loggerFactory = CreateLoggerFactory(hostBuilder);
+
+        var builder = new PluginBuilder(loggerFactory);
         hostBuilder.Properties[PluginBuilderKey] = builder;
 
-        registerPlugins(builder);
+        registerPlugins(builder, loggerFactory);
         if (addSupportForConfigurationPerPlugin)
         {
             builder.ShareWithPlugins(typeof(IPluginOptions<>));
@@ -62,5 +65,42 @@ public static class HostBuilderExtensions
                 }
             }
         });
+    }
+
+    private static ILoggerFactory CreateLoggerFactory(IHostBuilder hostBuilder)
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+        ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        return new DisposingLoggerFactory(loggerFactory, serviceProvider);
+    }
+    
+    private class DisposingLoggerFactory : ILoggerFactory
+    {
+        private readonly ILoggerFactory _loggerFactory;
+
+        private readonly ServiceProvider _serviceProvider;
+
+        public DisposingLoggerFactory(ILoggerFactory loggerFactory, ServiceProvider serviceProvider)
+        {
+            _loggerFactory = loggerFactory;
+            _serviceProvider = serviceProvider;
+        }
+
+        public void Dispose()
+        {
+            _serviceProvider.Dispose();
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return _loggerFactory.CreateLogger(categoryName);
+        }
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+            _loggerFactory.AddProvider(provider);
+        }
     }
 }

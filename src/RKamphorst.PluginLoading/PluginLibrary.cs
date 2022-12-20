@@ -1,19 +1,32 @@
 ﻿using System.Reflection;
+using Microsoft.Extensions.Logging;
 using RKamphorst.PluginLoading.Contract;
 
 namespace RKamphorst.PluginLoading;
 
 public class PluginLibrary : IPluginLibrary
 {
+    private readonly ILogger<PluginLibrary> _logger;
     private readonly IPluginAssemblyLoader _assemblyLoader;
+
+    public PluginLibrary(
+        IPluginAssemblyLoaderFactory assemblyLoaderFactory,
+        PluginLibraryReference libraryReference,
+        IEnumerable<Type> serviceTypes,
+        IEnumerable<Type> sharedTypes,
+        ILoggerFactory loggerFactory
+    ) : this(assemblyLoaderFactory, libraryReference, serviceTypes, sharedTypes,
+        loggerFactory.CreateLogger<PluginLibrary>()) { }
 
     public PluginLibrary(
         IPluginAssemblyLoaderFactory assemblyLoaderFactory, 
         PluginLibraryReference libraryReference, 
         IEnumerable<Type> serviceTypes,
-        IEnumerable<Type> sharedTypes
+        IEnumerable<Type> sharedTypes,
+        ILogger<PluginLibrary> logger
         )
     {
+        _logger = logger;
         Reference = libraryReference;
         ServiceTypes = serviceTypes.ToArray();
         SharedTypes = sharedTypes.ToArray();
@@ -51,10 +64,19 @@ public class PluginLibrary : IPluginLibrary
 
     private IEnumerable<Type> GetMatchingServices(Type toMatch, Type serviceType)
     {
+        _logger.LogDebug(
+            "Trying to match implementation {ToMatch} to service {ServiceType}",
+            toMatch.Name, serviceType.Name
+        );
+        
         if (toMatch.IsInterface || toMatch.IsAbstract || !toMatch.IsPublic)
         {
             // only concrete and public types can really provide services,
             // so in this case we return nothing
+            _logger.LogDebug(
+                "Implementation {ToMatch} is not a concrete class; no match",
+                toMatch.Name
+            );
             yield break;
         }
 
@@ -65,12 +87,25 @@ public class PluginLibrary : IPluginLibrary
             if (serviceType.IsAssignableFrom(toMatch))
             {
                 // if so, this service is provided by toMatch
+                _logger.LogDebug(
+                    "Service {ServiceType} is a closed type and {ToMatch} implements it; single match",
+                    serviceType.Name, toMatch.Name
+                );
                 yield return serviceType;
             }
 
+            _logger.LogDebug(
+                "Service {ServiceType} is a closed type and {ToMatch} does not implement it; no match",
+                serviceType.Name, toMatch.Name
+            );
             yield break;
         }
 
+        _logger.LogDebug(
+            "Service {ServiceType} is an open generic type, scanning for a match on {ToMatch}",
+            serviceType.Name, toMatch.Name
+        );
+        
         // serviceType is an open generic type.
         // we need to do some extra complicated things to find out which closed types
         // are services matching that open generic type are provided by toMatch
@@ -91,8 +126,17 @@ public class PluginLibrary : IPluginLibrary
         IEnumerable<Type> baseTypesWithSameGenericType =
             EnumerateInterfacesAndBaseTypes(toMatch).Where(
                 t => t.IsGenericType && t.GetGenericTypeDefinition() == oSvcGenericTypeDef
-            );
+            ).ToArray();
 
+        _logger.LogDebug(
+            "Implementation {ToMatch} has base types {@BaseTypesWithSameGenericType} " +
+            "with same generic type as {ServiceType}, attempting to create them",
+            toMatch.Name,
+            baseTypesWithSameGenericType.Select(t => t.Name),
+            openGenericServiceType.Name
+        );
+
+        
         foreach (Type t in baseTypesWithSameGenericType)
         {
             Type[] typeArgs = openGenericServiceType.GetGenericArguments()

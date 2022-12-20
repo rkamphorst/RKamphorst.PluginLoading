@@ -1,5 +1,6 @@
 using Amazon.S3;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -28,7 +29,7 @@ public class FetchConfigAsyncShould
         {
             Bucket = "bucket",
             Prefix = "prefix"
-        }, s3ClientMock.Object);
+        }, Mock.Of<ILogger<S3LibrarySource>>(),s3ClientMock.Object);
 
 
         var result = await sut.FetchConfigAsync("name", CancellationToken.None);

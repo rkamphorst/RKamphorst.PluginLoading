@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RKamphorst.PluginLoading.Contract;
 using RKamphorst.PluginLoading.Test.PluginContract;
@@ -21,7 +22,11 @@ public class PluginAssemblyLoaderFactoryShould
             .Setup(m => m.GetPathToLibraryAssemblyAsync(It.IsAny<PluginLibraryReference>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(StubPluginLibraries.GetPathToAssemblyFile(StubPluginLibraries.PluginA));
-        
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock
+            .Setup(m => m.CreateLogger(It.IsAny<string>()))
+            .Returns(Mock.Of<ILogger>());
+
         _pluginLibraryMock = new Mock<IPluginLibrary>();
         _pluginLibraryMock
             .SetupGet(m => m.Reference)
@@ -29,7 +34,7 @@ public class PluginAssemblyLoaderFactoryShould
         _pluginLibraryMock.SetupGet(m => m.ServiceTypes).Returns(new[] { typeof(IService1) });
         _pluginLibraryMock.SetupGet(m => m.SharedTypes).Returns(Type.EmptyTypes);
         
-        _sut = new PluginAssemblyLoaderFactory(_pluginStoreMock.Object);
+        _sut = new PluginAssemblyLoaderFactory(_pluginStoreMock.Object, loggerFactoryMock.Object);
     }
     
     [Fact]

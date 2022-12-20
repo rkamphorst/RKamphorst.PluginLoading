@@ -1,6 +1,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -30,7 +31,7 @@ public class FetchCodeZipAsyncShould
         {
             Bucket = "bucket",
             Prefix = "prefix"
-        }, s3ClientMock.Object);
+        }, Mock.Of<ILogger<S3LibrarySource>>(), s3ClientMock.Object);
 
 
         var result = await sut.FetchCodeZipAsync("name", CancellationToken.None);

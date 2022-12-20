@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using McMaster.NETCore.Plugins;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RKamphorst.PluginLoading.Contract;
 using RKamphorst.PluginLoading.Test.Stubs;
@@ -15,7 +16,7 @@ public class PluginStoreShould
     public PluginStoreShould()
     {
         _pluginLibrarySourceMock = StubPluginLibrarySource.CreateMock("Source");
-        _sut = new PluginStore();
+        _sut = new PluginStore(Mock.Of<ILogger<PluginStore>>());
     }
     
     [Fact]

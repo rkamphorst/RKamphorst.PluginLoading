@@ -1,4 +1,6 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using RKamphorst.PluginLoading.Contract;
 using RKamphorst.PluginLoading.Test.ExternalDependency;
 using RKamphorst.PluginLoading.Test.PluginContract;
@@ -13,7 +15,11 @@ public class PluginBuilderShould
 
     public PluginBuilderShould()
     {
-        _sut = new PluginBuilder(StubPluginLibraries.CreateAssemblyLoaderFactory());
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock
+            .Setup(m => m.CreateLogger(It.IsAny<string>()))
+            .Returns(Mock.Of<ILogger>());
+        _sut = new PluginBuilder(StubPluginLibraries.CreateAssemblyLoaderFactory(), loggerFactoryMock.Object);
     }
 
 

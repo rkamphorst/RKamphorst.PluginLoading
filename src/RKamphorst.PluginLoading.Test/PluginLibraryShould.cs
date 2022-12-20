@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using RKamphorst.PluginLoading.Contract;
 using RKamphorst.PluginLoading.Test.ExternalDependency;
@@ -21,12 +22,17 @@ public class PluginLibraryShould
             Source = source
         };
 
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock
+            .Setup(m => m.CreateLogger(It.IsAny<string>()))
+            .Returns(Mock.Of<ILogger>());
+
         return new PluginLibrary(
             StubPluginLibraries.CreateAssemblyLoaderFactory(),
-            reference, serviceTypes, Type.EmptyTypes
+            reference, serviceTypes, Type.EmptyTypes, loggerFactoryMock.Object
         );
     }
-    
+
     [Fact]
     public void SetReferenceAndTypesWhenConstructed()
     {
@@ -38,9 +44,14 @@ public class PluginLibraryShould
         var serviceTypes = new[] { typeof(IService1), typeof(IService2) };
         var sharedTypes = new[] { typeof(IExternalInterface) };
 
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock
+            .Setup(m => m.CreateLogger(It.IsAny<string>()))
+            .Returns(Mock.Of<ILogger>());
+        
         var sut = new PluginLibrary(
             Mock.Of<IPluginAssemblyLoaderFactory>(), 
-            reference, serviceTypes, sharedTypes
+            reference, serviceTypes, sharedTypes, loggerFactoryMock.Object
         );
 
         sut.Should().NotBeNull();

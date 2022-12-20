@@ -2,6 +2,7 @@
 using Amazon.S3;
 using Amazon.S3.Model;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -67,7 +68,7 @@ public class GetListAsyncShould
         {
             Bucket = "bucket",
             Prefix = "prefix"
-        }, s3ClientMock.Object);
+        }, Mock.Of<ILogger<S3LibrarySource>>(), s3ClientMock.Object);
 
         var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
         result.Should().NotBeNull();
@@ -89,7 +90,7 @@ public class GetListAsyncShould
         {
             Bucket = "bucket",
             Prefix = prefix
-        }, s3ClientMock.Object);
+        }, Mock.Of<ILogger<S3LibrarySource>>(), s3ClientMock.Object);
 
         var result = (await sut.GetListAsync(CancellationToken.None)).ToArray();
         result.Should().NotBeNull();
