@@ -29,16 +29,6 @@ public class EcsServiceUpdater : IEcsServiceUpdater
 
     public async Task UpdateAsync(CancellationToken cancellationToken)
     {
-        var delayMillis = _options.DelayMillis;
-        if (delayMillis > 0)
-        {
-            _logger.LogInformation(
-                "Waiting {DelayMilliseconds} before updating ECS services",
-                delayMillis
-                );
-            await Task.Delay(TimeSpan.FromMilliseconds(delayMillis), cancellationToken);
-        }
-        
         var versionAtDate = await _timestampProvider.GetTimestampAsync(cancellationToken);
 
         var clusterServicePairs = _options.Services;

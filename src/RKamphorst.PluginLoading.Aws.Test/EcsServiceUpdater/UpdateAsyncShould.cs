@@ -36,7 +36,7 @@ public class UpdateAsyncShould
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
-            ["container"] = new() {}
+            ["container"] = new()
         });
         SetupRegisterTaskDefinitionAsync(
             req =>
@@ -64,9 +64,9 @@ public class UpdateAsyncShould
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
-            ["container0"] = new() { },
-            ["container1"] = new() { },
-            ["container2"] = new() { }
+            ["container0"] = new(),
+            ["container1"] = new(),
+            ["container2"] = new()
         });
         SetupRegisterTaskDefinitionAsync(
             req =>
@@ -101,7 +101,7 @@ public class UpdateAsyncShould
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
-            ["container"] = new() {}
+            ["container"] = new()
         });
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition1", 15);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition2", 16);
@@ -136,7 +136,7 @@ public class UpdateAsyncShould
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
-            ["container"] = new() {}
+            ["container"] = new()
         });
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition1", 15);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition2", 16);
@@ -208,8 +208,7 @@ public class UpdateAsyncShould
                     {
                         Cluster = sac.Cluster,
                         Service = sac.Service,
-                    }).ToArray(),
-                DelayMillis = 0
+                    }).ToArray()
             },
             _timestampProviderMock.Object,
             Mock.Of<ILogger<EcsServiceUpdater>>());
