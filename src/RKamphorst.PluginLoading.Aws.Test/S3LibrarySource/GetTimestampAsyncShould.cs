@@ -5,6 +5,9 @@ namespace RKamphorst.PluginLoading.Aws.Test.S3LibrarySource;
 
 public class GetTimestampAsyncShould
 {
+    private const string DotNetZipPostfix = "-dotnet.zip";
+    private const string DotNetConfigPostfix = $"-dotnet-pluginsettings.json";
+    
     private readonly IS3TestBackend _backend;
     
     public GetTimestampAsyncShould()
@@ -17,12 +20,12 @@ public class GetTimestampAsyncShould
     {
         string prefix = $"{GetType().Name}_{nameof(ReportLatestTimestamp)}/";
         var versions = _backend.GenerateVersions(0, 10,
-                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                keys: n => $"{prefix}lib{n}{DotNetZipPostfix}",
                 lastModifiedOffset: n => TimeSpan.FromMilliseconds(-n-1)
             )
             .Concat(
                 _backend.GenerateVersions(0, 10,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}{DotNetConfigPostfix}",
                     lastModifiedOffset: n => TimeSpan.FromMilliseconds(-n)
                 )
             )
@@ -42,12 +45,12 @@ public class GetTimestampAsyncShould
     {
         string prefix = $"{GetType().Name}_{nameof(ReportLatestTimestampBeforeVersionAtDate)}/";
         var versions = _backend.GenerateVersions(0, 10,
-                keys: n => $"{prefix}lib{n}-dotnet.zip",
+                keys: n => $"{prefix}lib{n}{DotNetZipPostfix}",
                 lastModifiedOffset: n => TimeSpan.FromMilliseconds(5-n-1)
             )
             .Concat(
                 _backend.GenerateVersions(0, 10,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}{DotNetConfigPostfix}",
                     lastModifiedOffset: n => TimeSpan.FromMilliseconds(5-n)
                 )
             )

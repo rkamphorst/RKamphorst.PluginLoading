@@ -24,7 +24,7 @@ public class GetListAsyncShould
                     )
             .Concat(
                 _backend.GenerateVersions(0, 1000, 
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1))
             )
             .Shuffle().ToList();
@@ -51,7 +51,7 @@ public class GetListAsyncShould
                     lastModifiedOffset: _ => TimeSpan.Zero)
             .Concat(
                 _backend.GenerateVersions(5, 10, 
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1))
             )
             .Shuffle().ToList();
@@ -77,7 +77,7 @@ public class GetListAsyncShould
             )
             .Concat(
                 _backend.GenerateVersions(0, 10,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: n => TimeSpan.FromMilliseconds(n * 2 * 200)
                 )
             )
@@ -105,7 +105,7 @@ public class GetListAsyncShould
             )
             .Concat(
                 _backend.GenerateVersions(0, 10,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: n => TimeSpan.FromMilliseconds(n-4)
                 )
             )
@@ -133,7 +133,7 @@ public class GetListAsyncShould
             )
             .Concat(
                 _backend.GenerateVersions(0, 2,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1)
                 )
             )
@@ -168,13 +168,13 @@ public class GetListAsyncShould
             )
             .Concat(
                 _backend.GenerateVersions(0, 2,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1)
                 )
             )
             .Concat(
                 _backend.GenerateVersions(1, 1,
-                    keys: n => $"{prefix}lib{n}-dotnet-pluginconfig.json",
+                    keys: n => $"{prefix}lib{n}-dotnet-pluginsettings.json",
                     lastModifiedOffset: _ => TimeSpan.FromMilliseconds(2),
                     isDeleted: _ => true
                 )

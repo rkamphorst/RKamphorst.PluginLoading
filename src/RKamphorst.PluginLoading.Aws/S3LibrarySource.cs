@@ -10,7 +10,7 @@ namespace RKamphorst.PluginLoading.Aws;
 public class S3LibrarySource : IPluginLibrarySource, IPluginLibraryTimestampProvider
 {
     private const string DotNetZipPostfix = "-dotnet.zip";
-    private const string DotNetConfigPostfix = "-dotnet-pluginconfig.json";
+    private const string DotNetConfigPostfix = $"-dotnet-pluginsettings.json";
 
     private readonly ILogger<S3LibrarySource> _logger;
     private readonly IAmazonS3 _client;

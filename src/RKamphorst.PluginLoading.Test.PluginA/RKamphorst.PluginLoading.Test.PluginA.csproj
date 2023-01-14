@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Update="pluginconfig.json">
+      <None Update="pluginsettings.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

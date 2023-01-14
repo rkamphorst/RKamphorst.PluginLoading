@@ -107,23 +107,14 @@ public class PluginStore : IPluginStore
         {
             Stream? stream = await lib.FetchConfigAsync(cancellationToken);
 
-            if (stream != null)
-            {
-                _logger.LogDebug(
-                    "Storing config for library {PluginLibraryName} to {PluginConfigFile}",
-                    lib.Name, destPath);
+            _logger.LogDebug(
+                "Storing config for library {PluginLibraryName} to {PluginConfigFile}",
+                lib.Name, destPath);
 
-                await using (stream)
-                {
-                    await using FileStream dest = File.OpenWrite(destPath);
-                    await stream.CopyToAsync(dest, cancellationToken);
-                }
-            }
-            else
+            await using (stream)
             {
-                _logger.LogWarning(
-                    "No configuration found for library {PluginLibraryName}",
-                    lib.Name);
+                await using FileStream dest = File.OpenWrite(destPath);
+                await stream.CopyToAsync(dest, cancellationToken);
             }
         }
         catch (Exception ex)

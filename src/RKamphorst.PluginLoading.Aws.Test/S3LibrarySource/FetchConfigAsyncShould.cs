@@ -6,6 +6,9 @@ namespace RKamphorst.PluginLoading.Aws.Test.S3LibrarySource;
 
 public class FetchConfigAsyncShould
 {
+    private const string DotNetZipPostfix = "-dotnet.zip";
+    private const string DotNetConfigPostfix = $"-dotnet-pluginsettings.json";
+    
     private readonly IS3TestBackend _backend;
 
     public FetchConfigAsyncShould()
@@ -19,12 +22,12 @@ public class FetchConfigAsyncShould
         string prefix = $"{GetType().Name}_{nameof(FetchConfigStreamFromCorrectKey)}/";
         var versions = _backend.GenerateVersions(
                 1, 1,
-                keys: _ => $"{prefix}name-dotnet.zip",
+                keys: _ => $"{prefix}name{DotNetZipPostfix}",
                 lastModifiedOffset: _ => TimeSpan.Zero
             )
             .Concat(_backend.GenerateVersions(
                 1, 1,
-                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                keys: _ => $"{prefix}name{DotNetConfigPostfix}",
                 lastModifiedOffset: _ => TimeSpan.FromMilliseconds(1),
                 content: _ => "config"
             )).ToList();
@@ -48,12 +51,12 @@ public class FetchConfigAsyncShould
         string prefix = $"{GetType().Name}_{nameof(FetchConfigStreamFromLatestVersion)}/";
         var versions = _backend.GenerateVersions(
                 1, 1,
-                keys: _ => $"{prefix}name-dotnet.zip",
+                keys: _ => $"{prefix}name{DotNetZipPostfix}",
                 lastModifiedOffset: n => TimeSpan.FromMilliseconds(n)
             )
             .Concat(_backend.GenerateVersions(
                 1, 5,
-                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                keys: _ => $"{prefix}name{DotNetConfigPostfix}",
                 lastModifiedOffset: n => TimeSpan.FromMilliseconds(n),
                 content: n => n == 5 ? "latestVersion" : null
             )).ToList();
@@ -77,12 +80,12 @@ public class FetchConfigAsyncShould
         string prefix = $"{GetType().Name}_{nameof(ThrowExceptionIfDeleted)}/";
         var versions = _backend.GenerateVersions(
                 0, 1,
-                keys: _ => $"{prefix}name-dotnet.zip",
+                keys: _ => $"{prefix}name{DotNetZipPostfix}",
                 lastModifiedOffset: _ => TimeSpan.Zero
             )
             .Concat(_backend.GenerateVersions(
                 0, 2,
-                keys: _ => $"{prefix}name-dotnet-pluginconfig.json",
+                keys: _ => $"{prefix}name{DotNetConfigPostfix}",
                 lastModifiedOffset: n => TimeSpan.FromMilliseconds(n),
                 isDeleted: n => n == 1
             )).ToList();
