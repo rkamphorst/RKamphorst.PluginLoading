@@ -1,0 +1,15 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Sample.UpdateHandler": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development",
+        "HANDLER_S3LibrarySource__S3Bucket": "[bucket]",
+        "HANDLER_S3LibrarySource__S3Prefix": "plugins",
+        "HANDLER_EcsServiceUpdater__Services__0__Cluster": "[cluster arn]",
+        "HANDLER_EcsServiceUpdater__Services__0__Service": "[service name]"
+      }
+    }
+  }
+}

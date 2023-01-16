@@ -27,11 +27,26 @@ public class EcsServiceUpdater : IEcsServiceUpdater
         _logger = logger;
     }
 
+    internal Func<DateTimeOffset> GetNowTime { get; set; } = () => DateTimeOffset.UtcNow; 
+    
     public async Task UpdateAsync(CancellationToken cancellationToken)
     {
-        var versionAtDate = await _timestampProvider.GetTimestampAsync(cancellationToken);
+        DateTimeOffset? versionAtDate = await _timestampProvider.GetTimestampAsync(cancellationToken);
 
-        var clusterServicePairs = _options.Services;
+        if (!versionAtDate.HasValue)
+        {
+            _logger.LogInformation(
+                "Library source gave null timestamp, VersionAtDate will be set ad hoc"
+            );
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Library source gave VersionAtDate {VersionAtDate}", versionAtDate.Value
+            );
+        }
+
+        ServiceAndCluster[]? clusterServicePairs = _options.Services;
 
         if (clusterServicePairs == null || clusterServicePairs.Length == 0)
         {
@@ -57,7 +72,7 @@ public class EcsServiceUpdater : IEcsServiceUpdater
             }
             else
             {
-                updateTasks.Add(UpdateAsync(clusterName!, serviceName!, versionAtDate, cancellationToken));
+                updateTasks.Add(UpdateAsync(clusterName, serviceName, versionAtDate, cancellationToken));
             }
 
             ctr++;
@@ -66,27 +81,34 @@ public class EcsServiceUpdater : IEcsServiceUpdater
         await Task.WhenAll(updateTasks);
     }
     
-    public async Task UpdateAsync(string clusterName, string serviceName, DateTimeOffset versionAtDate, CancellationToken cancellationToken)
+    public async Task UpdateAsync(string clusterName, string serviceName, DateTimeOffset? versionAtDate, CancellationToken cancellationToken)
     {
-        var taskDefinition = await GetCurrentTaskDefinitionAsync(clusterName, serviceName, cancellationToken);
-        var taskDefinitionRevision = $"{taskDefinition.Family}:{taskDefinition.Revision}";
+        TaskDefinition? taskDefinition = await GetCurrentTaskDefinitionAsync(clusterName, serviceName, cancellationToken);
+        if (taskDefinition == null)
+        {
+            _logger.LogWarning(
+                "Could not get task definition for service {Cluster}/{Service}", 
+                clusterName,
+                serviceName);
+            return;
+        }
+        
+        var newTaskDefinitionRevision = await TryUpdateTaskDefinitionAsync(taskDefinition, versionAtDate, cancellationToken);
 
-
-        _logger.LogInformation("Updating task definition {TaskDefinitionRevision} to use VersionAtDate {VersionAtDate}",
-            taskDefinitionRevision, versionAtDate);
-
-        UpdateContainerDefinitions(taskDefinition.ContainerDefinitions, versionAtDate);
-
-        RegisterTaskDefinitionResponse? registerResponse =
-            await _ecsClient.RegisterTaskDefinitionAsync(CreateRegisterTaskDefinitionRequest(taskDefinition),
-                cancellationToken);
-
-        var newTaskDefinition = registerResponse.TaskDefinition;
-        var newTaskDefinitionRevision = $"{newTaskDefinition.Family}:{newTaskDefinition.Revision}";
-
+        if (newTaskDefinitionRevision == null)
+        {
+            _logger.LogInformation(
+                "Service {Cluster}/{Service} needs no update, " +
+                "task definition remains at revision {TaskDefinitionRevision}",
+                clusterName, serviceName, $"{taskDefinition.Family}:{taskDefinition.Revision}"
+            );
+            return;
+        }
+        
         _logger.LogInformation(
-            "Updating service {Service} in cluster {Cluster} to use task revision {NewTaskDefinitionRevision}",
-            serviceName, clusterName, newTaskDefinitionRevision
+            "Updating service {Cluster}/{Service} " +
+            "to use task definition revision {NewTaskDefinitionRevision}",
+            clusterName, serviceName, newTaskDefinitionRevision
         );
 
         await _ecsClient.UpdateServiceAsync(new UpdateServiceRequest
@@ -97,35 +119,109 @@ public class EcsServiceUpdater : IEcsServiceUpdater
         }, cancellationToken);
     }
 
-
-    private static void UpdateContainerDefinitions(
-        IEnumerable<ContainerDefinition> containerDefinitions, DateTimeOffset versionAtDate)
+    private readonly Dictionary<string, Task<string?>> _updatedTaskDefinitions = new();
+    
+    private Task<string?> TryUpdateTaskDefinitionAsync(TaskDefinition taskDefinition, DateTimeOffset? versionAtDate,
+        CancellationToken cancellationToken)
     {
-        foreach (var containerDefinition in containerDefinitions)
+        var taskDefinitionRevision = $"{taskDefinition.Family}:{taskDefinition.Revision}";
+        return !_updatedTaskDefinitions.TryGetValue(taskDefinition.Family, out Task<string?>? tsk)
+            ? (_updatedTaskDefinitions[taskDefinition.Family] = DoUpdateAsync())
+            : tsk;
+        
+        async Task<string?> DoUpdateAsync()
         {
-            var newEnvironment =
-                containerDefinition.Environment
-                    .Where(kvp => kvp.Name != Constants.DefaultVersionAtDateEnvironmentVariable)
-                    .Concat(new KeyValuePair[]
-                    {
-                        new() { Name = Constants.DefaultVersionAtDateEnvironmentVariable, Value = versionAtDate.ToString("O") }
-                    }).ToList();
+            if (!TryUpdateContainerDefinitions(taskDefinition.ContainerDefinitions, versionAtDate))
+            {
+                _logger.LogDebug(
+            "Not Updating task definition {TaskDefinitionRevision}, " +
+                    "it already uses VersionAtDate {VersionAtDate}",
+                    taskDefinitionRevision, versionAtDate);
+                return null;
+            }
 
-            containerDefinition.Environment = newEnvironment;
+            _logger.LogDebug(
+                "Updating task definition {TaskDefinitionRevision} to use VersionAtDate {VersionAtDate}",
+                taskDefinitionRevision, versionAtDate);
+
+            RegisterTaskDefinitionResponse? registerResponse =
+                await _ecsClient.RegisterTaskDefinitionAsync(CreateRegisterTaskDefinitionRequest(taskDefinition),
+                    cancellationToken);
+
+            TaskDefinition? newTaskDefinition = registerResponse.TaskDefinition;
+            var newTaskDefinitionRevision = $"{newTaskDefinition.Family}:{newTaskDefinition.Revision}";
+            _logger.LogInformation(
+                "New task definition revision {NewTaskDefinitionRevision} uses VersionAtDate {VersionAtDate}",
+                newTaskDefinitionRevision, versionAtDate
+                );
+            return newTaskDefinitionRevision;
         }
     }
 
-    private async Task<TaskDefinition> GetCurrentTaskDefinitionAsync(string clusterName, string serviceName, CancellationToken cancellationToken)
+    private bool TryUpdateContainerDefinitions(
+        IEnumerable<ContainerDefinition> containerDefinitions, DateTimeOffset? versionAtDate)
     {
-        var describeServicesResponse = await _ecsClient.DescribeServicesAsync(new DescribeServicesRequest
+        var isUpdated = false;
+        foreach (ContainerDefinition containerDefinition in containerDefinitions)
         {
-            Cluster = clusterName,
-            Services = new List<string> { serviceName }
-        }, cancellationToken);
+            List<KeyValuePair> versionAtDateVars =
+                containerDefinition.Environment
+                    .Where(kvp => kvp.Name == Constants.DefaultVersionAtDateEnvironmentVariable)
+                    .ToList();
 
-        var service = describeServicesResponse.Services.Single();
+            if (versionAtDateVars.Count != 1 ||
+                !DateTimeOffset.TryParse(versionAtDateVars[0].Value, out DateTimeOffset dt) ||
+                (versionAtDate.HasValue && dt != versionAtDate)
+               )
+            {
+                var value = versionAtDate ?? GetNowTime();
+                if (!versionAtDate.HasValue)
+                {
+                    _logger.LogInformation(
+                        "Using ad-hoc VersionAtDate {VersionAtDate} to update task definition",
+                        value
+                        );
+                }
+                
+                List<KeyValuePair> newEnvironment =
+                    containerDefinition.Environment
+                        .Where(kvp => kvp.Name != Constants.DefaultVersionAtDateEnvironmentVariable)
+                        .Concat(new KeyValuePair[]
+                        {
+                            new() { Name = Constants.DefaultVersionAtDateEnvironmentVariable, Value = value.ToString("O") }
+                        }).ToList();
+                containerDefinition.Environment = newEnvironment;
+                isUpdated = true;
+            }
+        }
+        return isUpdated;
+    }
 
-        var describeTaskDefinitionResponse = await _ecsClient.DescribeTaskDefinitionAsync(
+    private async Task<TaskDefinition?> GetCurrentTaskDefinitionAsync(string clusterName, string serviceName, CancellationToken cancellationToken)
+    {
+        Service? service;
+        try
+        {
+            DescribeServicesResponse? describeServicesResponse = await _ecsClient.DescribeServicesAsync(new DescribeServicesRequest
+            {
+                Cluster = clusterName,
+                Services = new List<string> { serviceName }
+            }, cancellationToken);
+            
+            service = describeServicesResponse.Services.SingleOrDefault();
+            if (service == null)
+            {
+                _logger.LogWarning("Service {Cluster}/{Service} not found", clusterName, serviceName);
+                return null;
+            }
+        }
+        catch (ClusterNotFoundException)
+        {
+            _logger.LogWarning("Cluster {Cluster} not found", clusterName);
+            return null;
+        }
+
+        DescribeTaskDefinitionResponse? describeTaskDefinitionResponse = await _ecsClient.DescribeTaskDefinitionAsync(
             new DescribeTaskDefinitionRequest
             {
                 TaskDefinition = service.TaskDefinition

@@ -16,19 +16,20 @@ var environment =
 // read configuration from appsettings.json, appsettings.(Development|Master|Production).json,
 // and environment variables; configuration from later sources overrides earlier sources.
 var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddJsonFile($"appsettings.{environment}.json", optional:true)
     .AddEnvironmentVariables("HANDLER_")
     .Build();
 
 // configure services
 var serviceProvider = new ServiceCollection()
-    
-    // add support for logging
-    .AddLogging(b => b.AddConsole())
-    
+
     // add plugin loading from AWS services;
     // this includes the IEcsServiceUpdater implementation
     .AddPluginLoadingFromAws(options => configuration.Bind(options))
+    .AddLogging(bld => bld.AddConsole())
     .BuildServiceProvider();
+    
 
 if (environment.ToUpperInvariant().StartsWith("DEV"))
 {

@@ -32,21 +32,36 @@ public class S3LibrarySource : IPluginLibrarySource, IPluginLibraryTimestampProv
         _prefix = !string.IsNullOrWhiteSpace(options.S3Prefix?.Trim())
             ? options.S3Prefix.Trim().EndsWith("/") ? options.S3Prefix.Trim() : $"{options.S3Prefix.Trim()}/"
             : "";
+        _logger = logger;
+        _client = client;
 
         _versionAtDate = options.VersionAtDate;
-        if (!_versionAtDate.HasValue 
-            && !string.IsNullOrWhiteSpace(options.VersionAtDateEnvironmentVariable)
+        if (_versionAtDate.HasValue)
+        {
+            _logger.LogInformation(
+                "Using version at date from settings: {VersionAtDate}", _versionAtDate.Value
+                );
+        } else if (
+            !string.IsNullOrWhiteSpace(options.VersionAtDateEnvironmentVariable)
             && DateTimeOffset.TryParse(
                 Environment.GetEnvironmentVariable(options.VersionAtDateEnvironmentVariable),
                 out DateTimeOffset dt
-                )
             )
+           )
         {
+            _logger.LogInformation(
+                "Using version at date from {VersionAtDateEnvironmentVariable}: {VersionAtDate}",
+                options.VersionAtDateEnvironmentVariable, dt);
             _versionAtDate = dt;
         }
+        else
+        {
+            _logger.LogInformation(
+                "Version at date not set, using {VersionAtDate}; which means latest version",
+                 (DateTimeOffset?)null);
+            
+        }
 
-        _logger = logger;
-        _client = client;
     }
 
     public string Name => $"s3://{_bucket}/{_prefix}";
@@ -97,11 +112,11 @@ public class S3LibrarySource : IPluginLibrarySource, IPluginLibraryTimestampProv
         return objectResponse.ResponseStream;
     }
 
-    public async Task<DateTimeOffset> GetTimestampAsync(CancellationToken cancellationToken)
+    public async Task<DateTimeOffset?> GetTimestampAsync(CancellationToken cancellationToken)
     {
         return await
             ListS3CodeAndConfigAsync(null, cancellationToken)
-                .MaxAsync(o => o.Timestamp, cancellationToken);
+                .MaxAsync(o => (DateTimeOffset?)o.Timestamp, cancellationToken);
     }
 
     private async Task<S3CodeAndConfig> GetS3CodeAndConfigAsync(string name, CancellationToken cancellationToken)

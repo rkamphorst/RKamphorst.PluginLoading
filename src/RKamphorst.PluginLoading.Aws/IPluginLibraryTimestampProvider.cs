@@ -2,5 +2,5 @@
 
 public interface IPluginLibraryTimestampProvider
 {
-    Task<DateTimeOffset> GetTimestampAsync(CancellationToken cancellationToken);
+    Task<DateTimeOffset?> GetTimestampAsync(CancellationToken cancellationToken);
 }

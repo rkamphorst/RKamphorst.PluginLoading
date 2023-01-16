@@ -17,13 +17,15 @@ public class UpdateAsyncShould
     private readonly Mock<IAmazonECS> _ecsClientMock;
     private readonly Mock<IPluginLibraryTimestampProvider> _timestampProviderMock;
 
+    private static readonly DateTimeOffset ProviderTimestamp = DateTimeOffset.Parse("1982-03-18T02:55:15Z");
+    
     public UpdateAsyncShould()
     {
         _ecsClientMock = new Mock<IAmazonECS>(MockBehavior.Strict);
         _timestampProviderMock = new Mock<IPluginLibraryTimestampProvider>(MockBehavior.Strict);
         _timestampProviderMock
             .Setup(m => m.GetTimestampAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(DateTimeOffset.Parse("1982-03-18T02:55:15Z"));
+            .ReturnsAsync(ProviderTimestamp);
 
     }
 
@@ -42,13 +44,48 @@ public class UpdateAsyncShould
             req =>
                 req.ContainerDefinitions.Count == 1
                 && req.ContainerDefinitions[0].Environment.Count == 1 
-                && req.ContainerDefinitions[0].Environment[0].Name == Constants.DefaultVersionAtDateEnvironmentVariable,
+                && req.ContainerDefinitions[0].Environment[0].Name == Constants.DefaultVersionAtDateEnvironmentVariable
+                && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == ProviderTimestamp, 
             15
         );
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
         
         var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task UseCurrentTimeIfProviderTimestampIsNull()
+    {
+        _timestampProviderMock
+            .Setup(m => m.GetTimestampAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTimeOffset?)null);
+        var currentTime = DateTimeOffset.Parse("2022-01-01T10:03:00Z");
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+            ["service"] = "taskDefinition"
+        });
+        SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
+        {
+            ["container"] = new()
+        });
+        SetupRegisterTaskDefinitionAsync(
+            req =>
+                req.ContainerDefinitions.Count == 1
+                && req.ContainerDefinitions[0].Environment.Count == 1 
+                && req.ContainerDefinitions[0].Environment[0].Name == Constants.DefaultVersionAtDateEnvironmentVariable
+                && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == currentTime, 
+            15
+        );
+        SetupUpdateServiceAsync(req =>
+            req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
+        
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+        sut.GetNowTime = () => currentTime;
 
         await sut.UpdateAsync(CancellationToken.None);
 
@@ -123,6 +160,43 @@ public class UpdateAsyncShould
         await sut.UpdateAsync(CancellationToken.None);
 
         _ecsClientMock.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task UpdateSameTaskDefinitionOnlyOnce()
+    {
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+            ["service1"] = "taskDefinition",
+            ["service2"] = "taskDefinition",
+            ["service3"] = "taskDefinition"
+        });
+        SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
+        {
+            ["container"] = new()
+        });
+        SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition", 15);
+
+        SetupUpdateServiceAsync(req =>
+            req.Cluster == "cluster" && req.Service == "service1" && req.TaskDefinition == "taskDefinition:15");
+        SetupUpdateServiceAsync(req =>
+            req.Cluster == "cluster" && req.Service == "service2" && req.TaskDefinition == "taskDefinition:15");
+        SetupUpdateServiceAsync(req =>
+            req.Cluster == "cluster" && req.Service == "service3" && req.TaskDefinition == "taskDefinition:15");
+        
+        var sut = CreateSystemUnderTest(
+            (Cluster: "cluster", Service: "service1"), 
+            (Cluster: "cluster", Service: "service2"), 
+            (Cluster: "cluster", Service: "service3")
+        );
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+        _ecsClientMock.Verify(
+            m => m.RegisterTaskDefinitionAsync(It.IsAny<RegisterTaskDefinitionRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -199,6 +273,123 @@ public class UpdateAsyncShould
         _ecsClientMock.VerifyAll();
     }
     
+    [Fact]
+    public async Task NotPerformUpdateIfNoContainerEnvironmentChanged()
+    {
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+            ["service"] = "taskDefinition"
+        });
+        SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
+        {
+            ["container"] = new()
+            {
+                ["ENVIRONMENT_VARIABLE"] = "OLD_VALUE",
+                [Constants.DefaultVersionAtDateEnvironmentVariable] = ProviderTimestamp.ToString("O")
+            }
+        });
+        
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+        _ecsClientMock.VerifyNoOtherCalls();
+    }
+    
+    [Fact]
+    public async Task NotPerformUpdateIfLibrarySourceEmptyAndVersionAtDateSet()
+    {
+        _timestampProviderMock
+            .Setup(m => m.GetTimestampAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTimeOffset?)null);
+        
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+            ["service"] = "taskDefinition"
+        });
+        SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
+        {
+            ["container"] = new()
+            {
+                ["ENVIRONMENT_VARIABLE"] = "OLD_VALUE",
+                [Constants.DefaultVersionAtDateEnvironmentVariable] = "2019-01-01T00:01:33Z"
+            }
+        });
+        
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+        _ecsClientMock.VerifyNoOtherCalls();
+    }
+    
+    [Fact]
+    public async Task PerformUpdateIfLibrarySourceEmptyAndVersionAtDateNotSet()
+    {
+        _timestampProviderMock
+            .Setup(m => m.GetTimestampAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTimeOffset?)null);
+        var currentTime = DateTimeOffset.Parse("2022-01-01T10:03:00Z");
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+            ["service"] = "taskDefinition"
+        });
+        SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
+        {
+            ["container"] = new()
+        });
+        SetupRegisterTaskDefinitionAsync(
+            req =>
+                req.ContainerDefinitions.Count == 1
+                && req.ContainerDefinitions[0].Environment.Count == 1 
+                && req.ContainerDefinitions[0].Environment[0].Name == Constants.DefaultVersionAtDateEnvironmentVariable
+                && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == currentTime, 
+            15
+        );
+        SetupUpdateServiceAsync(req =>
+            req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
+        
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+        sut.GetNowTime = () => currentTime;
+        
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task NotThrowExceptionIfServiceNotFound()
+    {
+        SetupDescribeServicesAsync(new Dictionary<string, string>
+        {
+        });
+        
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+    }
+    
+    [Fact]
+    public async Task NotThrowExceptionIfClusterNotFound()
+    {
+        _ecsClientMock
+            .Setup(
+                m => m.DescribeServicesAsync(It.IsAny<DescribeServicesRequest>(), It.IsAny<CancellationToken>())
+            )
+            .ThrowsAsync(new ClusterNotFoundException("cluster not found"));
+
+        var sut = CreateSystemUnderTest((Cluster: "cluster", Service: "service"));
+
+        await sut.UpdateAsync(CancellationToken.None);
+
+        _ecsClientMock.VerifyAll();
+    }
+
+    
     private EcsServiceUpdater CreateSystemUnderTest(params (string? Cluster, string? Service)[] servicesAndClusters)
     {
         return new EcsServiceUpdater(_ecsClientMock.Object, new EcsServiceUpdaterOptions
@@ -223,8 +414,10 @@ public class UpdateAsyncShould
                 {
                     Services = rq.Services.Select(n => new Service
                     {
-                        ServiceName = n, TaskDefinition = serviceTaskDefinitions[n]
-                    }).ToList()
+                        ServiceName = n, TaskDefinition = serviceTaskDefinitions.TryGetValue(n, out var td) ? td : null
+                    })
+                        .Where(s => s.TaskDefinition != null)
+                        .ToList()
                 })
             .Verifiable();
     }
@@ -260,6 +453,7 @@ public class UpdateAsyncShould
             .ReturnsAsync(new UpdateServiceResponse())
             .Verifiable();
     }
+
     private static TaskDefinition CreateTaskDefinition(string familyAndRevision,
         Dictionary<string, Dictionary<string, string>>? containerEnvironments = null) =>
         new()

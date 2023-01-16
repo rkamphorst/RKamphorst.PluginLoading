@@ -6,7 +6,7 @@ using Sample.Contract;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables("NAE_");
+builder.Configuration.AddEnvironmentVariables("API_");
 builder.Logging.AddConsole();
 
 // download plugins and configure services to use them
