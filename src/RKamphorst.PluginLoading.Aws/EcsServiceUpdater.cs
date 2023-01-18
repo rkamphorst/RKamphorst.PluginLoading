@@ -63,6 +63,8 @@ public class EcsServiceUpdater : IEcsServiceUpdater
 
             if (string.IsNullOrWhiteSpace(clusterName) || string.IsNullOrWhiteSpace(serviceName))
             {
+                
+                
                 _logger.LogWarning(
                     $"Updater options: {nameof(_options.Services)} " +
                     $"has empty {nameof(pair.Service)} or {nameof(pair.Cluster)} " +
@@ -83,13 +85,16 @@ public class EcsServiceUpdater : IEcsServiceUpdater
     
     public async Task UpdateAsync(string clusterName, string serviceName, DateTimeOffset? versionAtDate, CancellationToken cancellationToken)
     {
+        using var _ = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["Cluster"] = clusterName,
+            ["Service"] = serviceName
+        });
+        
         TaskDefinition? taskDefinition = await GetCurrentTaskDefinitionAsync(clusterName, serviceName, cancellationToken);
         if (taskDefinition == null)
         {
-            _logger.LogWarning(
-                "Could not get task definition for service {Cluster}/{Service}", 
-                clusterName,
-                serviceName);
+            _logger.LogWarning("Could not get task definition for service");
             return;
         }
         
@@ -98,17 +103,15 @@ public class EcsServiceUpdater : IEcsServiceUpdater
         if (newTaskDefinitionRevision == null)
         {
             _logger.LogInformation(
-                "Service {Cluster}/{Service} needs no update, " +
+                "Service needs no update, " +
                 "task definition remains at revision {TaskDefinitionRevision}",
-                clusterName, serviceName, $"{taskDefinition.Family}:{taskDefinition.Revision}"
+                $"{taskDefinition.Family}:{taskDefinition.Revision}"
             );
             return;
         }
         
         _logger.LogInformation(
-            "Updating service {Cluster}/{Service} " +
-            "to use task definition revision {NewTaskDefinitionRevision}",
-            clusterName, serviceName, newTaskDefinitionRevision
+            "Updating service to use task definition revision {NewTaskDefinitionRevision}", newTaskDefinitionRevision
         );
 
         await _ecsClient.UpdateServiceAsync(new UpdateServiceRequest

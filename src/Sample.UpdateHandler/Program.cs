@@ -52,7 +52,7 @@ async Task HandleS3EventAsync()
 {
     using var scope = serviceProvider.CreateScope();
 
-    var updater = serviceProvider.GetRequiredService<IEcsServiceUpdater>();
+    var updater = scope.ServiceProvider.GetRequiredService<IEcsServiceUpdater>();
 
     await updater.UpdateAsync(default);
 }

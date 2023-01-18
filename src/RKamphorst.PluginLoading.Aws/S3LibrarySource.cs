@@ -114,9 +114,10 @@ public class S3LibrarySource : IPluginLibrarySource, IPluginLibraryTimestampProv
 
     public async Task<DateTimeOffset?> GetTimestampAsync(CancellationToken cancellationToken)
     {
+    
         return await
-            ListS3CodeAndConfigAsync(null, cancellationToken)
-                .MaxAsync(o => (DateTimeOffset?)o.Timestamp, cancellationToken);
+            ListObjectVersionsUntilAtDate(null, cancellationToken)
+                .MaxAsync(o => (DateTimeOffset?)o.LastModified, cancellationToken);
     }
 
     private async Task<S3CodeAndConfig> GetS3CodeAndConfigAsync(string name, CancellationToken cancellationToken)
