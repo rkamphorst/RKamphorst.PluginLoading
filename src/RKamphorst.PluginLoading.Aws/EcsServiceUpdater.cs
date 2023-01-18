@@ -157,6 +157,17 @@ public class EcsServiceUpdater : IEcsServiceUpdater
                 "New task definition revision {NewTaskDefinitionRevision} uses VersionAtDate {VersionAtDate}",
                 newTaskDefinitionRevision, versionAtDate
                 );
+
+            await _ecsClient.DeregisterTaskDefinitionAsync(new DeregisterTaskDefinitionRequest
+            {
+                TaskDefinition = taskDefinitionRevision
+            }, cancellationToken);
+
+            _logger.LogDebug(
+                "De-registered old task definition {TaskDefinitionRevision}",
+                taskDefinitionRevision
+            );
+            
             return newTaskDefinitionRevision;
         }
     }

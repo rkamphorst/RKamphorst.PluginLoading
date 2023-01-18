@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using System.Net;
 using Amazon.ECS;
 using Amazon.ECS.Model;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,7 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service"] = "taskDefinition"
+            ["service"] = "taskDefinition:3"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -48,6 +49,8 @@ public class UpdateAsyncShould
                 && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == ProviderTimestamp, 
             15
         );
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:3");
+        
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
         
@@ -67,7 +70,7 @@ public class UpdateAsyncShould
         var currentTime = DateTimeOffset.Parse("2022-01-01T10:03:00Z");
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service"] = "taskDefinition"
+            ["service"] = "taskDefinition:3"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -81,6 +84,7 @@ public class UpdateAsyncShould
                 && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == currentTime, 
             15
         );
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:3");
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
         
@@ -97,7 +101,7 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service"] = "taskDefinition"
+            ["service"] = "taskDefinition:3"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -117,6 +121,7 @@ public class UpdateAsyncShould
                 && req.ContainerDefinitions[2].Environment[0].Name == Constants.DefaultVersionAtDateEnvironmentVariable,
             15
         );
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:3");
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
 
@@ -132,9 +137,9 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service1"] = "taskDefinition1",
-            ["service2"] = "taskDefinition2",
-            ["service3"] = "taskDefinition3"
+            ["service1"] = "taskDefinition1:11",
+            ["service2"] = "taskDefinition2:22",
+            ["service3"] = "taskDefinition3:33"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -143,7 +148,10 @@ public class UpdateAsyncShould
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition1", 15);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition2", 16);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition3", 17);
-
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition1:11");
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition2:22");
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition3:33");
+        
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service1" && req.TaskDefinition == "taskDefinition1:15");
         SetupUpdateServiceAsync(req =>
@@ -167,16 +175,16 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service1"] = "taskDefinition",
-            ["service2"] = "taskDefinition",
-            ["service3"] = "taskDefinition"
+            ["service1"] = "taskDefinition:1",
+            ["service2"] = "taskDefinition:1",
+            ["service3"] = "taskDefinition:1"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
             ["container"] = new()
         });
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition", 15);
-
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:1");
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service1" && req.TaskDefinition == "taskDefinition:15");
         SetupUpdateServiceAsync(req =>
@@ -197,6 +205,10 @@ public class UpdateAsyncShould
             m => m.RegisterTaskDefinitionAsync(It.IsAny<RegisterTaskDefinitionRequest>(), It.IsAny<CancellationToken>()),
             Times.Once
         );
+        _ecsClientMock.Verify(
+            m => m.DeregisterTaskDefinitionAsync(It.IsAny<DeregisterTaskDefinitionRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -204,9 +216,9 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service1"] = "taskDefinition1",
-            ["service2"] = "taskDefinition2",
-            ["service3"] = "taskDefinition3"
+            ["service1"] = "taskDefinition1:1",
+            ["service2"] = "taskDefinition2:2",
+            ["service3"] = "taskDefinition3:3"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -215,7 +227,9 @@ public class UpdateAsyncShould
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition1", 15);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition2", 16);
         SetupRegisterTaskDefinitionAsync(req => req.Family == "taskDefinition3", 17);
-
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition1:1");
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition2:2");
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition3:3");
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service1" && req.TaskDefinition == "taskDefinition1:15");
         SetupUpdateServiceAsync(req =>
@@ -241,7 +255,7 @@ public class UpdateAsyncShould
     {
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service"] = "taskDefinition"
+            ["service"] = "taskDefinition:666"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -263,6 +277,8 @@ public class UpdateAsyncShould
                 ).Value != "OLD_VALUE",
             15
         );
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:666");
+
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
         
@@ -334,7 +350,7 @@ public class UpdateAsyncShould
         var currentTime = DateTimeOffset.Parse("2022-01-01T10:03:00Z");
         SetupDescribeServicesAsync(new Dictionary<string, string>
         {
-            ["service"] = "taskDefinition"
+            ["service"] = "taskDefinition:1"
         });
         SetupDescribeTaskDefinitionAsync(new Dictionary<string, Dictionary<string, string>>
         {
@@ -348,6 +364,8 @@ public class UpdateAsyncShould
                 && DateTimeOffset.Parse(req.ContainerDefinitions[0].Environment[0].Value) == currentTime, 
             15
         );
+        SetupDeRegisterTaskDefinitionAsync("taskDefinition:1");
+
         SetupUpdateServiceAsync(req =>
             req.Cluster == "cluster" && req.Service == "service" && req.TaskDefinition == "taskDefinition:15");
         
@@ -443,6 +461,23 @@ public class UpdateAsyncShould
                 {
                     TaskDefinition = CreateTaskDefinition($"{rq.Family}:{returnRevision}")
                 })
+            .Verifiable();
+    }
+
+    private void SetupDeRegisterTaskDefinitionAsync(string taskDefinition)
+    {
+        SetupDeRegisterTaskDefinitionAsync(rq => rq.TaskDefinition == taskDefinition);
+    }
+    
+    private void SetupDeRegisterTaskDefinitionAsync(
+        Expression<Func<DeregisterTaskDefinitionRequest, bool>> requestExpression)
+    {
+        _ecsClientMock
+            .Setup(m => m.DeregisterTaskDefinitionAsync(It.Is(requestExpression),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                (DeregisterTaskDefinitionRequest rq, CancellationToken _) => new DeregisterTaskDefinitionResponse()
+            )
             .Verifiable();
     }
 
